@@ -37,14 +37,6 @@ export class PublicKmsStack extends cdk.Stack {
       resources: ['*'],
     }));
 
-    // 特定のアカウントにKMSアクセスを許可
-    key.addToResourcePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      principals: [new iam.AccountPrincipal(allowedAccountId.valueAsString)],
-      actions: ['kms:*'],
-      resources: ['*'],
-    }));
-
     // S3バケットを作成
     const bucket = new s3.Bucket(this, 'public-kms-bucket', {
       publicReadAccess: false,
@@ -68,26 +60,29 @@ export class PublicKmsStack extends cdk.Stack {
     new s3deploy.BucketDeployment(this, 'deployAssets', {
       sources: [
         s3deploy.Source.asset('./assets/'),
-        s3deploy.Source.data('secret.txt', 'This is sensitive data encrypted by KMS'),
       ],
       destinationBucket: bucket,
     });
 
     // 出力
-    new cdk.CfnOutput(this, 'KeyId', {
-      value: key.keyId,
+    new cdk.CfnOutput(this, 'KeyArn', {
+      value: key.keyArn,
+      description: 'KMS Key ARN',
     });
 
     new cdk.CfnOutput(this, 'BucketName', {
       value: bucket.bucketName,
+      description: 'S3 Bucket Name',
     });
 
     new cdk.CfnOutput(this, 'AttackerRoleArn', {
       value: attackerRole.roleArn,
+      description: 'Attacker Role ARN',
     });
 
     new cdk.CfnOutput(this, 'AssumeRoleCommand', {
       value: `aws sts assume-role --role-arn ${attackerRole.roleArn} --role-session-name attacker`,
-    });}
-
+      description: 'Command to assume the attacker role',
+    });
   }
+}
